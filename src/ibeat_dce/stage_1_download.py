@@ -17,42 +17,25 @@ SIEMENS = {
 } 
 TURKU_PHILIPS = {
     "series_description": [
-        'T1W-abdomen-Dixon-coronal-BH', 
-        'T1W-abdomen-Dixon-post-coronal-BH'
+        "DCE-kidney-coronal-oblique-FB",
+      
     ]
 }  
 TURKU_GE = {
     "series_description": [
-        "WATER: T1_abdomen_dixon_cor_bh", 
-        "FAT: T1_abdomen_dixon_cor_bh",
-        "InPhase: T1_abdomen_dixon_cor_bh",
-        "OutPhase: T1_abdomen_dixon_cor_bh",
-        "WATER: T1_abdomen_post_contrast_dixon_cor_bh",
-        "FAT: T1_abdomen_post_contrast_dixon_cor_bh",
-        "InPhase: T1_abdomen_post_contrast_dixon_cor_bh",
-        "OutPhase: T1_abdomen_post_contrast_dixon_cor_bh"
-    ]
+        "3D_DISCO_Dyn_kidneys_cor-oblique_fb"
+   ]
 } 
 SHEFFIELD_PATIENTS = {
     "series_description": [
-        # Philips data
-        'T1w_abdomen_dixon_cor_bh', 
-        'T1w_abdomen_post_contrast_dixon_cor_bh',
-        # GE data
-        'WATER: T1_abdomen_dixon_cor_bh',
-        'FAT: T1_abdomen_dixon_cor_bh',
-        'InPhase: T1_abdomen_dixon_cor_bh',
-        'OutPhase: T1_abdomen_dixon_cor_bh',
-        'WATER: T1_abdomen_post_contrast_dixon_cor_bh',
-        'FAT: T1_abdomen_post_contrast_dixon_cor_bh',
-        'InPhase: T1_abdomen_post_contrast_dixon_cor_bh',
-        'OutPhase: T1_abdomen_post_contrast_dixon_cor_bh',
+        "DCE_kidneys_cor-oblique_fb",
+       
     ]
 } 
 BARI = {
     "series_description": [
-        "T1w_abdomen_dixon_cor_bh", 
-        "T1w_abdomen_post_contrast_dixon_cor_bh"
+        "DCE_kidneys_cor-oblique_fb_wet_pulse",
+        "DCE_kidneys_cor-oblique_fb",
     ]
 } 
 LEEDS = {
@@ -78,7 +61,7 @@ DOWNLOAD = {
     },
     'turku_ge_patients':{
         'project_id': "BEAt-DKD-WP4-Turku",
-        'subject_label':"Turku_Patients_GE",
+       'subject_label':"Turku_Patients_GE",
         'attr': TURKU_GE       
     },
     'turku_philips_patients':{
@@ -114,7 +97,7 @@ def run(build, dir_output):
 
     logging.info("Stage 1 --- Downloading data ---")
  
-    n_max=None # downlaod all from each group
+    n_max=1# downlaod all from each group
     # n_max=1 # download just 1 from each group
 
     for group, props in tqdm(DOWNLOAD.items(), desc='Downloading..'):
@@ -134,5 +117,5 @@ def run(build, dir_output):
 
 if __name__ == '__main__':
 
-    build = r"C:\Users\md1spsx\Documents\Data\iBEAt_Build"
+    build = r"C:\Users\eia21frd\Documents\DATA"
     pipe.run_stage(run, build, PIPELINE, __file__)
