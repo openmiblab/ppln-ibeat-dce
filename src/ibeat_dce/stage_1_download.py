@@ -99,9 +99,8 @@ def run(build, logfile):
 
     dir_output = pipe.stage_output_dir(build, PIPELINE, __file__)
  
-    n_max=1# downlaod all from each group
-    # n_max=1 # download just 1 from each group
-
+    n_max= None 
+    
     for group, props in tqdm(DOWNLOAD.items(), desc='Downloading..'):
         try:
             download_series(
@@ -119,5 +118,5 @@ def run(build, logfile):
 
 if __name__ == '__main__':
 
-    build = r"C:\Users\md1spsx\Documents\iBEAt_Build"
+    build = r"C:\Users\eia21frd\Documents\iBEAt_Build"
     pipe.run_stage(run, build, PIPELINE, __file__)

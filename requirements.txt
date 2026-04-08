@@ -1,0 +1,8 @@
+numpy
+pydicom
+matplotlib
+imageio-ffmpeg
+mdreg
+tqdm
+napari[all]
+zipfile

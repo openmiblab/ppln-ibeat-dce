@@ -29,8 +29,8 @@ export VTK_DEFAULT_OPENGL_WINDOW=vtkOSOpenGLRenderWindow
 # Define path variables here
 ENV="/mnt/parscratch/users/$(whoami)/envs/dce"
 CODE="/mnt/parscratch/users/$(whoami)/ppln-ibeat-dce/src/ibeat_dce"
-BUILD="/mnt/parscratch/users/$(whoami)/data/ibeat_dce"
-ARCHIVE="login1:/shared/abdominal_imaging/Shared/ibeat_dce"
+BUILD="/mnt/parscratch/users/$(whoami)/data"
+ARCHIVE="login1:/shared/abdominal_imaging/Shared/ibeat_dce/data"
 
 # srun runs your program on the allocated compute resources managed by Slurm
 srun "$ENV/bin/python" "$CODE/stage_1_download.py" --build="$BUILD"
