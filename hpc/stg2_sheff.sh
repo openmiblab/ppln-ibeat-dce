@@ -20,7 +20,7 @@ CODE="/mnt/parscratch/users/$(whoami)/ppln-ibeat-dce/src/ibeat_dce"
 cd "$CODE"
 
 # 2. FIX: Run the python script using the local path now that we are in the folder
-srun "$ENV/bin/python" "stage_2_descriptive.py"
+srun "$ENV/bin/python" "stage_2_shef.py"
 
 # 3. FIX: Ensure the output directory exists before rsync runs
 # (If Python finds 0 files, this folder might not exist, causing rsync to fail)

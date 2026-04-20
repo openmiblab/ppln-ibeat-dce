@@ -38,7 +38,7 @@ def load_single_slice_time_series(folder_path, slice_idx):
 
                     dicom_headers.append({
                         'time_stamp': t_val,
-                        'z': float(ds.ImagePositionPatient[2]),
+                        'z': round(float(ds.ImagePositionPatient[2]), 2),
                         'path': filepath
                     })
             except Exception:
@@ -153,7 +153,7 @@ def get_true_dimensions(folder_path):
             try:
                 ds = pydicom.dcmread(filepath, stop_before_pixels=True)
                 if hasattr(ds, 'ImagePositionPatient'):
-                    z_positions.append(float(ds.ImagePositionPatient[2]))
+                    z_positions.append(round(float(ds.ImagePositionPatient[2]), 2))
             except Exception:
                 continue
                 
@@ -226,20 +226,21 @@ def compute_maps_for_patient(dicom_folder, results_folder):
 # 4. MAIN RUNNER 
 # =================================================================================
 if __name__ == "__main__":
-    stage_1_dir = r"X:\abdominal_imaging\Shared\ibeat_dce\data\stage_1_download"
-    stage_2_dir = r"X:\abdominal_imaging\Shared\ibeat_dce\results\stage_2"
+    stage_1_dir = "/mnt/parscratch/users/eia21frd/data/ibeat_dce/stage_1_download"
+    stage_2_dir = "/mnt/parscratch/users/eia21frd/build/stage_2_compute_descriptivemaps"
     
     n_max = 10      
     processed_count = 0
 
-    print("\nScanning Stage 1 folder for extracted patient folders...")
+    print(f"\nScanning {stage_1_dir} for DICOM series...")
     dicom_series_folders = []
     
+    # Updated logic: Search for any folder that actually contains .dcm files
     for root, dirs, files in os.walk(stage_1_dir):
-        valid_files = [f for f in files if not f.startswith('.') and not f.endswith('.zip')]
-        if len(valid_files) > 0 and len(dirs) == 0:
+        if any(f.lower().endswith('.dcm') for f in files):
             dicom_series_folders.append(root)
             
+    dicom_series_folders.sort()
     print(f"Found {len(dicom_series_folders)} potential patient series to process.")
 
     for dicom_folder in dicom_series_folders:
@@ -247,6 +248,7 @@ if __name__ == "__main__":
             print(f"\n[STOPPING] Reached n_max limit of {n_max} successful cases.")
             break
 
+        # This will preserve the deep folder structure in your results folder
         relative_path = os.path.relpath(dicom_folder, stage_1_dir)
         results_folder = os.path.join(stage_2_dir, relative_path)
         
@@ -258,4 +260,4 @@ if __name__ == "__main__":
             processed_count += 1
             print(f"    -> Patient processing complete. ({processed_count}/{n_max})")
 
-    print(f"\nStage 2 compute complete! You can now test Stage 3.")
+    print(f"\nStage 2 compute complete! Processed {processed_count} series.")

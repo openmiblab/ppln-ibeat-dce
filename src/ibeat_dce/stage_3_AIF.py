@@ -1,100 +1,93 @@
 import os
-import sys
 import numpy as np
-import napari
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# =================================================================================
-# STAGE 3: AIF CALCULATION (INTERACTIVE)
-# =================================================================================
-
-def calculate_aif(data_3d, mask_2d):
-    """Calculates the Arterial Input Function (AIF) curve from the selected mask."""
-    aif_curve = []
-    for t in range(data_3d.shape[-1]):
-        frame = data_3d[:, :, t]
-        aif_curve.append(np.mean(frame[mask_2d == 1]))
-    return np.array(aif_curve)
-
-def process_stage_3(stage_2_dir, stage_3_dir):
-    print(f"\n[STAGE 3] Starting Interactive AIF Extraction...")
+def plot_aif_intensities(stage3_dir, output_dir):
+    """
+    Reads Stage 3 AIF .npy files using os.walk, plots time-intensity curves, 
+    extracts Min/Max, and saves the plots to a new QC directory.
+    """
+    # 1. Create the new output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
     
-    patient_folders = [f for f in os.listdir(stage_2_dir) if os.path.isdir(os.path.join(stage_2_dir, f))]
+    # 2. Bulletproof deep search using os.walk
+    aif_files = []
+    for root, dirs, files in os.walk(stage3_dir):
+        if "aif_values.npy" in files:
+            aif_files.append(os.path.join(root, "aif_values.npy"))
     
-    if not patient_folders:
-        print(f"[!] No patient folders found in {stage_2_dir}")
+    if not aif_files:
+        print(f"[!] No AIF files found in {stage3_dir} or any of its subfolders.")
+        print("Are you sure the X: drive is connected and the files were saved?")
         return
 
-    for patient in patient_folders:
-        print(f"\n==================================================")
-        print(f"Loading Patient: {patient}")
+    summary_data = []
+    print(f"Found {len(aif_files)} 'aif_values.npy' files. Generating QC plots...")
+
+    for file_path in aif_files:
+        # Create a unique ID based on the folder path so we don't overwrite plots
+        relative_path = os.path.relpath(os.path.dirname(file_path), stage3_dir)
+        subject_id = relative_path.replace(os.sep, "_")
         
-        patient_in_dir = os.path.join(stage_2_dir, patient)
-        
-        # --- DEEP SEARCH ---
-        valid_data_folders = []
-        
-        print("  -> Searching deep inside all subfolders for data...")
-        for root, dirs, files in os.walk(patient_in_dir):
-            if 'average_map_slice_0.npy' in files and 'raw_data_slice_0.npy' in files:
-                valid_data_folders.append(root)
-        
-        if not valid_data_folders:
-            print(f"  [-] Missing data for {patient}. Checked all subfolders. Skipping...")
-            continue
+        try:
+            # 3. Read the AIF NumPy data
+            intensities = np.load(file_path)
             
-        print(f"  -> Found {len(valid_data_folders)} scan(s) for {patient}!")
+            # 4. Extract QC metrics
+            min_val = np.min(intensities)
+            max_val = np.max(intensities)
+            frame_count = len(intensities)
+            
+            # Log for the master spreadsheet
+            summary_data.append({
+                "Subject_ID": subject_id,
+                "Folder_Path": os.path.dirname(file_path),
+                "Frame_Count": frame_count,
+                "Min_Intensity": min_val,
+                "Max_Intensity": max_val
+            })
 
-        for idx, data_folder in enumerate(valid_data_folders):
-            if len(valid_data_folders) > 1:
-                print(f"\n  --- Processing Scan {idx + 1} of {len(valid_data_folders)} for {patient} ---")
-                
-            avg_map_path = os.path.join(data_folder, 'average_map_slice_0.npy')
-            raw_data_path = os.path.join(data_folder, 'raw_data_slice_0.npy')
+            # --- 5. Generate the Plot ---
+            plt.figure(figsize=(10, 6))
+            plt.plot(intensities, marker='o', linestyle='-', color='b', markersize=4)
             
-            print(f"  -> Loading from: {data_folder}")
-            average_map = np.load(avg_map_path)
-            raw_data = np.load(raw_data_path)
+            plt.title(f"AIF Time-Intensity Curve: {subject_id}", fontweight='bold')
+            plt.xlabel("Frame / Timepoint")
+            plt.ylabel("Signal Intensity")
+            
+            # Add a text box with the QC data for rapid viewing
+            info_text = f"Frames: {frame_count}\nMin: {min_val:.2f}\nMax: {max_val:.2f}"
+            plt.text(0.95, 0.95, info_text, transform=plt.gca().transAxes, 
+                     fontsize=12, verticalalignment='top', horizontalalignment='right', 
+                     bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgray', alpha=0.8))
+            
+            plt.grid(True, linestyle='--', alpha=0.7)
+            
+            # 6. Save the plot as a PNG
+            save_path = os.path.join(output_dir, f"{subject_id}_AIF_plot.png")
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            
+            # Close figure to free up memory
+            plt.close() 
+            
+        except Exception as e:
+            print(f"Failed to process {file_path}: {e}")
 
-            print("  >>> ACTION REQUIRED <<<")
-            print("  1. Napari is opening...")
-            print("  2. Draw your AIF mask using the paint tool.")
-            print("  3. CLOSE the Napari window when finished to save and continue.")
-            
-            # Open Napari
-            viewer = napari.Viewer()
-            viewer.add_image(average_map, name="Average Map")
-            labels = viewer.add_labels(np.zeros_like(average_map, dtype=np.uint8), name="AIF_MASK")
-            labels.mode = "paint"
-            labels.brush_size = 5
-            napari.run() 
-
-            mask = (labels.data > 0).astype(np.uint8)
-            
-            if np.sum(mask) == 0:
-                print("  [!] Warning: No mask was drawn! Skipping calculation for this scan.")
-                continue
-                
-            print("  -> Calculating AIF curve...")
-            aif_values = calculate_aif(raw_data, mask)
-
-            # --- THE FOLDER MIRRORING UPGRADE ---
-            # 1. Figure out exactly where this data folder sits relative to the main Stage 2 directory
-            relative_subpath = os.path.relpath(data_folder, stage_2_dir)
-            
-            # 2. Recreate that exact same structural path inside the Stage 3 directory
-            specific_out_dir = os.path.join(stage_3_dir, relative_subpath)
-            os.makedirs(specific_out_dir, exist_ok=True)
-            
-            # 3. Save it perfectly with a standard name
-            out_path = os.path.join(specific_out_dir, 'aif_values.npy')
-            np.save(out_path, aif_values)
-            
-            print(f"  -> SUCCESS! Saved to: {out_path}")
-
-    print("\n[STAGE 3] All available patients processed!")
-
-if __name__ == "__main__":
-    LOCAL_STAGE_2_FOLDER = r"X:\abdominal_imaging\Shared\ibeat_dce\results\stage_2"
-    LOCAL_STAGE_3_FOLDER = r"X:\abdominal_imaging\Shared\ibeat_dce\results\stage_3"
+    # 7. Save the master summary spreadsheet
+    summary_df = pd.DataFrame(summary_data)
+    summary_csv_path = os.path.join(output_dir, "AIF_MinMax_Summary.csv")
+    summary_df.to_csv(summary_csv_path, index=False)
     
-    process_stage_3(LOCAL_STAGE_2_FOLDER, LOCAL_STAGE_3_FOLDER)
+    print(f"--- SUCCESS ---")
+    print(f"Plots and summary CSV successfully saved to:\n{output_dir}")
+
+# ==========================================
+# EXECUTION ZONE
+# ==========================================
+if __name__ == "__main__":
+    # Updated with your exact local paths
+    STAGE_3_INPUT_DIR = r"X:\abdominal_imaging\Shared\ibeat_dce\results\stage_3" 
+    NEW_QC_OUTPUT_DIR = r"X:\abdominal_imaging\Shared\ibeat_dce\results\aif_plots"
+
+    plot_aif_intensities(STAGE_3_INPUT_DIR, NEW_QC_OUTPUT_DIR)
