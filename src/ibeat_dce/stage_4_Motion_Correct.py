@@ -5,10 +5,13 @@ import glob
 import numpy as np
 import pydicom
 import mdreg
+import imageio_ffmpeg
+
+# --- CRITICAL HPC DISPLAY FIX ---
+import matplotlib as mpl
+mpl.use('Agg') # Forces Matplotlib to render without a UI/Display
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import imageio_ffmpeg
-import matplotlib as mpl
 
 # Set the path to ffmpeg for the MP4 exporter
 mpl.rcParams['animation.ffmpeg_path'] = imageio_ffmpeg.get_ffmpeg_exe()
@@ -105,8 +108,9 @@ def save_grid_mp4(dict_coreg_data, dict_uncorrected_data, filename, title='Motio
 # MAIN STAGE 4 PIPELINE
 # =================================================================================
 
-def process_stage_4(stage_1_base, stage_2_base, stage_3_base, stage_4_base):
+def process_stage_4(stage_1_base, stage_2_base, stage_3_base, stage_4_base, batch_size=10):
     print("\n[STAGE 4] Starting Motion Correction (mdreg)...")
+    print(f"--> Batch Size Limit: {batch_size} cases per run.")
     
     scans_to_process = []
     for root, dirs, files in os.walk(stage_3_base):
@@ -117,17 +121,29 @@ def process_stage_4(stage_1_base, stage_2_base, stage_3_base, stage_4_base):
         print(f"[!] No AIF files found in {stage_3_base}. Please run Stage 3 first.")
         return
 
-    print(f"-> Found {len(scans_to_process)} scan(s) ready for motion correction.")
+    print(f"-> Found {len(scans_to_process)} total scan(s) in database.")
+
+    processed_count = 0
 
     for idx, aif_folder in enumerate(scans_to_process):
+        relative_path = os.path.relpath(aif_folder, stage_3_base)
+        results_folder = os.path.join(stage_4_base, relative_path)
+        
+        # --- NEW SKIP LOGIC ---
+        # If the final grid MP4 already exists, this scan is done. Skip it!
+        final_mp4_path = os.path.join(results_folder, 'all_slices_moco_grid.mp4')
+        if os.path.exists(final_mp4_path):
+            print(f"[-] Skipping {relative_path} (Already completed)")
+            continue
+            
         print(f"\n==================================================")
-        print(f"Processing Scan {idx + 1} of {len(scans_to_process)}")
+        print(f"Processing Scan (Batch {processed_count + 1}/{batch_size})")
+        print(f"Path: {relative_path}")
+        print(f"==================================================")
         
         # 1. Mirror paths across all stages
-        relative_path = os.path.relpath(aif_folder, stage_3_base)
         dicom_folder = os.path.join(stage_1_base, relative_path)
         stage2_folder = os.path.join(stage_2_base, relative_path)
-        results_folder = os.path.join(stage_4_base, relative_path)
         
         if not os.path.exists(stage2_folder):
             print(f"  [-] Warning: Missing Stage 2 data at {stage2_folder}. Skipping...")
@@ -211,16 +227,24 @@ def process_stage_4(stage_1_base, stage_2_base, stage_3_base, stage_4_base):
         # Generate Grid Video
         if scan_corrected_data:
             print("\n  -> Generating unified Grid Video...")
-            grid_mp4_path = os.path.join(results_folder, 'all_slices_moco_grid.mp4')
             save_grid_mp4(
                 dict_coreg_data=scan_corrected_data, 
                 dict_uncorrected_data=scan_uncorrected_data, 
-                filename=grid_mp4_path, 
+                filename=final_mp4_path, 
                 title=f'Motion Corrected Slices'
             )
-            print(f"  -> SUCCESS: Saved Grid Video to {grid_mp4_path}")
+            print(f"  -> SUCCESS: Saved Grid Video to {final_mp4_path}")
 
-    print("\n[STAGE 4] All available scans processed successfully!")
+        # Increment the successful processing counter
+        processed_count += 1
+        
+        # --- NEW BATCH LIMITER CHECK ---
+        if processed_count >= batch_size:
+            print(f"\n[!] Reached target batch size of {batch_size}. Stopping script execution to respect time limits.")
+            break
+
+    if processed_count < batch_size:
+        print("\n[STAGE 4] Pipeline complete! All available scans in the database have been processed.")
 
 if __name__ == "__main__":
     # Point these to your cluster paths! Make sure STAGE_2_FOLDER is mapped correctly.
@@ -229,4 +253,5 @@ if __name__ == "__main__":
     STAGE_3_FOLDER = "/mnt/parscratch/users/eia21frd/build/stage_3/BEAt-DKD-WP4-Exeter"
     STAGE_4_FOLDER = "/mnt/parscratch/users/eia21frd/build/stage_4_motioncorrected"
     
-    process_stage_4(STAGE_1_FOLDER, STAGE_2_FOLDER, STAGE_3_FOLDER, STAGE_4_FOLDER)
+    # Passing batch_size=10 tells the script to stop after 10 cases.
+    process_stage_4(STAGE_1_FOLDER, STAGE_2_FOLDER, STAGE_3_FOLDER, STAGE_4_FOLDER, batch_size=10)
