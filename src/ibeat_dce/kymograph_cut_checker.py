@@ -1,10 +1,22 @@
-# =================================================================================
-# PRE-RUN DIAGNOSTIC: VERTICAL KYMOGRAPH CUT CHECKER (AMENDED FOR COL 125)
+## =================================================================================
+# PRE-RUN DIAGNOSTIC: HORIZONTAL KYMOGRAPH CUT CHECKER (REPORT READY)
 # =================================================================================
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pydicom
+
+# --- REPORT FORMATTING (LARGER FONTS) ---
+plt.rcParams.update({
+    'font.size': 16,          # Global font size
+    'axes.titlesize': 20,     # Title size
+    'axes.labelsize': 18,     # X and Y axis label size
+    'xtick.labelsize': 14,    # Tick marks on X axis
+    'ytick.labelsize': 14,    # Tick marks on Y axis
+    'font.weight': 'bold',
+    'axes.labelweight': 'bold',
+    'axes.titleweight': 'bold'
+})
 
 def load_single_slice_time_series(folder_path, slice_idx):
     """Loads Slice 4 across all time points to create the anatomy map."""
@@ -44,8 +56,8 @@ def load_single_slice_time_series(folder_path, slice_idx):
 data_path = r"C:\Users\eia21frd\Documents\DATA\hyperparametre\iBE-3128-136\series_43\iBE-3128-136\scans\43-DCE_kidneys_cor_oblique_fb\resources\DICOM\files"
 
 # 2. SETTINGS
-cut_mode = 'col'  # Vertical cut
-cut_index = 125   # Centered on the kidney based on your previous check
+cut_mode = 'row'  # AMENDED: Horizontal cut
+cut_index = 130    # AMENDED: Set to 95 for the row cut
 
 # =================================================================================
 # EXECUTION
@@ -55,21 +67,33 @@ try:
     pixel_data = load_single_slice_time_series(data_path, slice_idx=4)
     avg_map = np.mean(pixel_data, axis=-1)
 
-    plt.figure(figsize=(10, 10))
-    # Using 'bone' or 'gray' cmap for better anatomical detail
-    plt.imshow(avg_map, cmap='gray')
+    # --- THE BRIGHTNESS FIX ---
+    # Calculate the 98th percentile to clip extreme bright spots and brighten tissue
+    display_vmax = np.percentile(avg_map, 98)
+
+    # Increased figure size slightly to accommodate larger fonts
+    plt.figure(figsize=(12, 12))
     
-    # Draw the vertical line at Column 125
-    plt.axvline(x=cut_index, color='red', linewidth=3, linestyle='--')
+    # Passing the vmax threshold to brighten the image
+    plt.imshow(avg_map, cmap='gray', vmax=display_vmax)
     
+    # AMENDED: Draw the horizontal line at Row 95
+    plt.axhline(y=cut_index, color='red', linewidth=4, linestyle='--')
+    
+    # AMENDED: Title and Axes updated for Horizontal orientation
+    plt.title(f"PREVIEW: Horizontal Cut at ROW {cut_index}\n(Tracking Left-Right Kidney Cross-Section)", pad=20)
     plt.xlabel("X (Columns)")
     plt.ylabel("Y (Rows)")
     
-    # Adding text to the plot to confirm coordinates
-    plt.text(cut_index + 2, 20, f"Target: Col {cut_index}", color='red', fontweight='bold')
+    # AMENDED: Shifted text to the left side, sitting just above the red horizontal line
+    plt.text(20, cut_index - 4, f"Target: Row {cut_index}", color='red', fontweight='bold', fontsize=18)
 
     plt.grid(alpha=0.3)
-    print(f"Displaying preview... verify the red line bisects the kidney.")
+    print(f"Displaying preview... verify the red line passes through the kidney horizontally.")
+    
+    # Optional: Saves a high-res copy for your report methodology section
+    plt.savefig("Methodology_Horizontal_Cut_Preview.png", dpi=300, bbox_inches='tight')
+    
     plt.show()
 
 except Exception as e:

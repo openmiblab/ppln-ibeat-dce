@@ -46,7 +46,7 @@ def load_single_slice_time_series(folder_path, slice_idx):
 
     start_time = target_files[0]['time_stamp']
     time_points = np.array([d['time_stamp'] - start_time for d in target_files])
-                                                                                                                                                      
+                                                                                                                                                                                                            
     num_times = len(target_files)
     ref_ds = pydicom.dcmread(target_files[0]['path'])
     rows, cols = int(ref_ds.Rows), int(ref_ds.Columns)
@@ -158,21 +158,23 @@ def save_gif(data, filename, title='Motion Corrected Data', fps=5):
     anim.save(filename, writer='pillow', fps=fps)
     plt.close(fig)
 
-def generate_comparison_kymograph(raw_array, corrected_array, test_name, save_path, col_idx=125):
-    """Generates vertical space-time plots to justify motion correction choice."""
+# CHANGED: Replaced col_idx with row_idx
+def generate_comparison_kymograph(raw_array, corrected_array, test_name, save_path, row_idx=130):
+    """Generates horizontal space-time plots to justify motion correction choice."""
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
 
-    # AMENDED: Slicing vertically along a column to track Superior-Inferior motion
-    kymo_raw = raw_array[:, col_idx, :]
-    kymo_corr = corrected_array[:, col_idx, :]
+    # CHANGED: Slicing horizontally along a row to track Left-Right motion
+    kymo_raw = raw_array[row_idx, :, :]
+    kymo_corr = corrected_array[row_idx, :, :]
 
     ax1.imshow(kymo_raw, cmap='gray', aspect='auto')
-    ax1.set_title(f"Raw Vertical Kymograph (Column {col_idx})")
-    ax1.set_ylabel("Superior-Inferior Position")
+    # CHANGED: Updated Titles and Y-Axis Labels
+    ax1.set_title(f"Raw Horizontal Kymograph (Row {row_idx})")
+    ax1.set_ylabel("Left-Right Position")
     
     ax2.imshow(kymo_corr, cmap='gray', aspect='auto')
-    ax2.set_title(f"Corrected: {test_name} (Column {col_idx})")
-    ax2.set_ylabel("Superior-Inferior Position")
+    ax2.set_title(f"Corrected: {test_name} (Row {row_idx})")
+    ax2.set_ylabel("Left-Right Position")
     ax2.set_xlabel("Time (Frames)")
 
     plt.tight_layout()
@@ -183,8 +185,8 @@ def generate_comparison_kymograph(raw_array, corrected_array, test_name, save_pa
 # 5. MAIN EXECUTION SCRIPT
 # =================================================================================
 if __name__ == "__main__":
-    results_folder = r"C:\Users\eia21frd\Documents\RESULTS\hyperparameters\baseline\time"
-    folder_path = r"C:\Users\eia21frd\Documents\DATA\hyperparametre\iBE-3128-136\series_43\iBE-3128-136\scans\43-DCE_kidneys_cor_oblique_fb\resources\DICOM\files"
+    results_folder = r"C:\Users\eia21frd\Documents\RESULTS\hyperparameters\followup\time2"
+    folder_path = r"C:\Users\eia21frd\Documents\DATA\hyperparametre\iBE-3128-136_followup\series_43\iBE-3128-136_followup\scans\43-DCE_kidneys_cor_oblique_fb\resources\DICOM\files"
     os.makedirs(results_folder, exist_ok=True)
 
     # --- AIF CALCULATION (SLICE 0) ---
@@ -234,8 +236,9 @@ if __name__ == "__main__":
         save_gif(corrected_s4, os.path.join(test_results_dir, f'Corrected_Slice_4_{test_name}.gif'))
 
         # --- GENERATE KYMOGRAPH JUSTIFICATION ---
-        # AMENDED: Now using Column 125 for the justification plot
-        kymo_path = os.path.join(test_results_dir, f'Justification_Kymograph_{test_name}.png')
-        generate_comparison_kymograph(pixel_array_s4, corrected_s4, test_name, kymo_path, col_idx=125)
+        # CHANGED: Now using Row 130 for the horizontal justification plot
+        kymo_path = os.path.join(test_results_dir, f'Justification_Horizontal_Kymograph_{test_name}.png')
+        generate_comparison_kymograph(pixel_array_s4, corrected_s4, test_name, kymo_path, row_idx=130)
 
-    print("\nPipeline Complete! Vertical Kymographs and GIFs generated.")
+    # CHANGED: Updated completion message
+    print("\nPipeline Complete! Horizontal Kymographs and GIFs generated.")
