@@ -1,6 +1,7 @@
 """
 Automatic download of DIXON data from XNAT.
 """
+
 import logging
 
 from miblab import pipe
