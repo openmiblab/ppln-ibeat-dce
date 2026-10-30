@@ -5,7 +5,7 @@ Automatic download of DIXON data from XNAT.
 import logging
 
 from miblab import pipe
-from miblab_data.xnat import download_series
+from xnat_logging import download_series
 from tqdm import tqdm
 
 
@@ -100,8 +100,7 @@ def run(build, logfile):
 
     dir_output = pipe.stage_output_dir(build, PIPELINE, __file__)
  
-    n_max= None
-    
+    n_max= 1
     for group, props in tqdm(DOWNLOAD.items(), desc='Downloading..'):
         try:
             download_series(
@@ -111,7 +110,9 @@ def run(build, logfile):
                 n_max=n_max,
                 **props
             )
-            logging.info(f"Finished downloading {group}.")
+            
+            logging.info(f"Finished downloading {group}.") 
+            
         except:
             logging.exception(f"Error downloading {group}.")
 
@@ -119,5 +120,5 @@ def run(build, logfile):
 
 if __name__ == '__main__':
 
-    build = r"C:\Users\md1spsx\Documents\Data\iBEAt_Build"
+    build = r"C:\Users\admin\Desktop\Deep-learning-motion-correction-MRI\ppln-ibeat-dce\Data\iBEAt_build"
     pipe.run_stage(run, build, PIPELINE, __file__)
