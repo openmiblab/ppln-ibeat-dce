@@ -125,6 +125,7 @@ def run(build, logfile):
             
         except Exception:
             logging.exception(f"Error downloading {group}.")
+            failed_groups.append(group) # add group to the list of failed groups
 
     _log_total_summary(group_stats, failed_groups, len(DOWNLOAD))
 
