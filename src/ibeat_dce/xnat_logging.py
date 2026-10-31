@@ -42,17 +42,18 @@ def download_series(
     None if log = False. 
     If log=True returns tuple (n_downloaded, failed_downloads, n_existed)
 
-        - n_downloaded (int): number of series (zip-files) for which a download was
-          attempted (The series that got skipped because they already exist are not 
-          counted, this is the count that n_max limits).
+        - n_downloaded (int): number of fetched series matchedwith the series description
+          for which a download was attempted (The series that got skipped because they 
+          already exist are not counted, this is the count that n_max limits).
         - failed_downloads (list): (filepath, error) tuples for each 
           downloaded file that is missing, empty or corrupted.
         - n_existed (int): number of series skipped because they already 
           exist in the target directory and are not corrupted.
     """
-    n_downloaded = 0 # number of files for which a download was attempted (files that are getting skipped are excluded)
-    n_existed = 0 # number of files that got skipped because they are already at the target repository and they are not corrupted
-    failed_downloads = [] # (filepath, error) list of filepaths that failed to download, and the details of the error
+    n_downloaded = 0        # number of files for which a download was attempted (files that are getting skipped are excluded)
+    n_existed = 0           # number of files that got skipped because they are already at the target repository and they are not corrupted
+    failed_downloads = []   # (filepath, error) list of filepaths that failed to download, and the details of the error
+    
     session = _xnat_session(cred)
 
     # Loop over all subjects in the project
@@ -161,8 +162,6 @@ def download_series(
 
                         
 
-
-
 def _xnat_session(cred="user_XNAT.txt"):
     username, password = xnat_credentials(cred)
     session = requests.Session()
@@ -232,6 +231,7 @@ def _download_problem(path):
     
 def _log_summary(n_downloaded, failed_downloads, n_existed):
     "Record summary of all scanned files"
+    
     n_failed = len(failed_downloads)
     logging.info(f"\n Total files attempted: {n_downloaded + n_existed}"
                  f"\n Total files skipped because they already existed in target repository: {n_existed}"
