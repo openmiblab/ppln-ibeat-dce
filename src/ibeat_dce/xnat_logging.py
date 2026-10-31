@@ -118,7 +118,7 @@ def download_series(
                 if os.path.exists(out_path) and _download_problem(out_path) is None:
                     n_existed += 1
                     if log:
-                        logging.info(f"Skipping download because file {out_path} already exists and it is not corrupted")
+                        logging.info(f"Skipping download because file already exists and it is not corrupted {out_path}")
                     continue
 
                 # Download the scan
@@ -138,7 +138,7 @@ def download_series(
 
                     # Record problem with the downloaded file if there is an error    
                     else:
-                        logging.error(f"Error occured during download {out_path}: {file_donwload_problem}")
+                        logging.error(f"Error occured during download {file_donwload_problem}: {out_path}")
                         failed_downloads.append((out_path, file_donwload_problem))
 
 
@@ -240,4 +240,4 @@ def _log_summary(n_downloaded, failed_downloads, n_existed):
     if n_failed > 0:
         logging.info("List of files failed to download: ")
         for filepath, error in failed_downloads:
-            logging.info(f"{filepath} : {error}")
+            logging.info(f"{error} : {filepath}")
