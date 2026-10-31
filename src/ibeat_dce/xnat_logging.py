@@ -36,8 +36,21 @@ def download_series(
         n_max (int, optional): maximum number of series to download
         log (bool, optional): If True each download is logged.
         cred (str, optional): path to the txt file holding the credentials
+
+    Returns:
+
+    None if log = False. 
+    If log=True returns tuple (n_downloaded, failed_downloads, n_existed)
+
+        - n_downloaded (int): number of series (zip-files) for which a download was
+          attempted (The series that got skipped because they already exist are not 
+          counted, this is the count that n_max limits).
+        - failed_downloads (list): (filepath, error) tuples for each 
+          downloaded file that is missing, empty or corrupted.
+        - n_existed (int): number of series skipped because they already 
+          exist in the target directory and are not corrupted.
     """
-    n_fetched = 0 # number of total files through which the algorith iterated (previously was n_downloaded
+    n_downloaded = 0 # number of files for which a download was attempted (files that are getting skipped are excluded)
     n_existed = 0 # number of files that got skipped because they are already at the target repository and they are not corrupted
     failed_downloads = [] # (filepath, error) list of filepaths that failed to download, and the details of the error
     session = _xnat_session(cred)
@@ -130,15 +143,20 @@ def download_series(
 
 
                 # Check exit condition
-                n_fetched += 1
+                n_downloaded += 1
                 if n_max is not None:
-                    if n_fetched >= n_max:
-                        if log:
-                            _log_summary(n_fetched, failed_downloads)
-                            return
+                    if n_downloaded >= n_max:
+                        # If logging is on, return the variables used for the logging summary
+                        # This is needed to create the total summary of the downloaded files if multiple groups are being downloaded
+                        if log: 
+                            _log_summary(n_downloaded, failed_downloads, n_existed) 
+                            return n_downloaded, failed_downloads, n_existed 
+                        
+                        return
 
     if log:
-        _log_summary(n_fetched, failed_downloads)
+        _log_summary(n_downloaded, failed_downloads, n_existed)
+        return n_downloaded, failed_downloads, n_existed
     return
 
                         
@@ -212,13 +230,14 @@ def _download_problem(path):
     
     return None
     
-def _log_summary(n_fetched, failed_downloads, n_existed):
-        "Record summary of all scanned files"
-        logging.info(f"\n Total files iterated through: {n_fetched}"
-                     f"\n Total files skipped because they already existed in target repository: {n_existed}"
-                     f"\n Total files successfully downloaded: {n_fetched - len(failed_downloads) - n_existed}"
-                     f"\n Total files failed to download due to error: {len(failed_downloads)}")
-        if len(failed_downloads) > 0:
-            logging.info(f"List of files failed to download: ")
-            for filepath, error in failed_downloads:
-                logging.info(f"{filepath} : {error}")
+def _log_summary(n_downloaded, failed_downloads, n_existed):
+    "Record summary of all scanned files"
+    n_failed = len(failed_downloads)
+    logging.info(f"\n Total files iterated through: {n_downloaded + n_existed}"
+                 f"\n Total files skipped because they already existed in target repository: {n_existed}"
+                 f"\n Total files successfully downloaded: {n_downloaded - n_failed}"
+                 f"\n Total files failed to download due to error: {n_failed}")
+    if n_failed > 0:
+        logging.info("List of files failed to download: ")
+        for filepath, error in failed_downloads:
+            logging.info(f"{filepath} : {error}")
