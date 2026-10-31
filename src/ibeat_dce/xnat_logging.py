@@ -233,7 +233,7 @@ def _download_problem(path):
 def _log_summary(n_downloaded, failed_downloads, n_existed):
     "Record summary of all scanned files"
     n_failed = len(failed_downloads)
-    logging.info(f"\n Total files iterated through: {n_downloaded + n_existed}"
+    logging.info(f"\n Total files attempted: {n_downloaded + n_existed}"
                  f"\n Total files skipped because they already existed in target repository: {n_existed}"
                  f"\n Total files successfully downloaded: {n_downloaded - n_failed}"
                  f"\n Total files failed to download due to error: {n_failed}")
