@@ -100,11 +100,13 @@ def run(build, logfile):
 
     dir_output = pipe.stage_output_dir(build, PIPELINE, __file__)
  
-    n_max= 1
+    n_max= None
     group_stats = {}   # dict of counts and failed files, recorded for each group
     failed_groups = [] # groups where download_series itself raised an error
 
-    for group, props in tqdm(DOWNLOAD.items(), desc='Downloading..'):
+    pbar = tqdm(DOWNLOAD.items())
+    for group, props in pbar:
+        pbar.set_description(f"Processing {group}")
         try:
             n_downloaded, failed_downloads, n_existed = download_series(
                 xnat_url="https://qib.shef.ac.uk",
@@ -135,21 +137,21 @@ def _log_total_summary(group_stats, failed_groups, n_groups):
     logging.info(f" \n ---------- DOWNLOAD SUMMARY ----------")
     logging.info(f"Total groups downloaded: {len(group_stats)} out of {n_groups}")
     if failed_groups:
-        logging.info(f"Groups that had error during downloads: {', '.join(failed_groups)}")
+        logging.info(f"Groups that had error during download: {', '.join(failed_groups)}")
 
     for group, s in group_stats.items():
         logging.info(
             f"\n Group: {group}"
-            f"\n Files fetched (found matching the series description): {s['fetched']}"
+            f"\n Files fetched (matched the series description): {s['fetched']}"
             f"\n Files skipped (already existed, not corrupted): {s['skipped']}"
             f"\n Files attempted to download: {s['attempted']}"
-            f"\n Files failed: {len(s['failed'])}"
+            f"\n Files failed due to error: {len(s['failed'])}"
         )
         for filepath, error in s["failed"]:
-            logging.info(f"FAILED {error} : {filepath}")
+            logging.info(f"ERROR {error} : {filepath}")
 
 
 if __name__ == '__main__':
 
-    build = r"C:\Users\admin\Desktop\Deep-learning-motion-correction-MRI\ppln-ibeat-dce\Data\iBEAt_build"
+    build = r"path\to\build"
     pipe.run_stage(run, build, PIPELINE, __file__)
