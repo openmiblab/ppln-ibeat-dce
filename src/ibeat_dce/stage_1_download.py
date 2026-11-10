@@ -30,6 +30,7 @@ TURKU_GE = {
 SHEFFIELD_PATIENTS = {
     "series_description": [
         "DCE_kidneys_cor-oblique_fb",
+        "3D_DISCO_Dyn_kidneys_cor-oblique_fb",
        
     ]
 } 
