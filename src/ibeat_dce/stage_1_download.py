@@ -5,7 +5,9 @@ Automatic download of DIXON data from XNAT.
 import logging
 
 from miblab import pipe
-from xnat_logging import download_series
+from .utils.xnat_logging import download_series
+# from miblab_data.xnat import download_series comented this because it uses custom miblab_data version
+
 from tqdm import tqdm
 
 
@@ -101,7 +103,7 @@ def run(build, logfile):
 
     dir_output = pipe.stage_output_dir(build, PIPELINE, __file__)
  
-    n_max= None
+    n_max= 1
     group_stats = {}   # dict of counts and failed files, recorded for each group
     failed_groups = [] # groups where download_series itself raised an error
 
