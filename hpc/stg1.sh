@@ -1,8 +1,8 @@
 #!/bin/bash   
-#SBATCH --mem=4G         
+#SBATCH --mem=16G         
 #SBATCH --cpus-per-task=1
 #SBATCH --time=72:00:00
-#SBATCH --mail-user=s.sourbron@sheffield.ac.uk
+#SBATCH --mail-user=amityukova1@sheffield.ac.uk
 #SBATCH --mail-type=FAIL,END
 #SBATCH --job-name=arxv
 #SBATCH --output=logs/arxv.out
@@ -20,14 +20,15 @@ export SLURM_EXPORT_ENV=ALL
 
 # Loads the Anaconda module provided by the cluster.
 # (On HPC systems, software is usually installed as “modules” to avoid version conflicts.)
-module load Anaconda3/2024.02-1
+module load Anaconda3/2025.06-1
 module load Python/3.10.8-GCCcore-12.2.0 # essential to load latest GCC
 
 # Define path variables here
-ENV="/mnt/parscratch/users/$(whoami)/envs/template"
-CODE="/mnt/parscratch/users/$(whoami)/scripts/ppln-template/src/template"
-BUILD="/mnt/parscratch/users/$(whoami)/data/demo"
-ARCHIVE="login1:/shared/abdominal_imaging/Archive/demo"
+ENV="/mnt/parscratch/users/$(whoami)/envs/ibeat-dce"
+CODE="/mnt/parscratch/users/$(whoami)/scripts/ppln-ibeat-dce/src/ibeat_dce"
+LOCAL="/mnt/parscratch/users/$(whoami)/data/iBEAt_Build"
+ARCHIVE="logina:/shared/abdominal_imaging/Archive/iBEAt_Build"
 
 # srun runs your program on the allocated compute resources managed by Slurm
-rsync -av --no-group --no-perms "$BUILD/template" "$ARCHIVE"
+cd "$CODE" 
+srun "$ENV/bin/python" "$CODE/stage_1_download.py" --build="$LOCAL"

@@ -5,7 +5,9 @@ Automatic download of DIXON data from XNAT.
 import logging
 
 from miblab import pipe
-from miblab_data.xnat import download_series
+from utils.xnat_logging import download_series
+# from miblab_data.xnat import download_series comented this because it uses custom miblab_data version
+
 from tqdm import tqdm
 
 
@@ -29,7 +31,8 @@ TURKU_GE = {
 } 
 SHEFFIELD_PATIENTS = {
     "series_description": [
-        "DCE_kidneys_cor-oblique_fb",
+#        "DCE_kidneys_cor-oblique_fb",
+        "3D_DISCO_Dyn_kidneys_cor-oblique_fb",
        
     ]
 } 
@@ -100,24 +103,58 @@ def run(build, logfile):
 
     dir_output = pipe.stage_output_dir(build, PIPELINE, __file__)
  
-    n_max= None 
-    
-    for group, props in tqdm(DOWNLOAD.items(), desc='Downloading..'):
+    n_max = 3
+    group_stats = {}   # dict of counts and failed files, recorded for each group
+    failed_groups = [] # groups where download_series itself raised an error
+
+    pbar = tqdm(DOWNLOAD.items())
+    for group, props in pbar:
+        pbar.set_description(f"Processing {group}")
         try:
-            download_series(
+            n_downloaded, failed_downloads, n_existed = download_series(
                 xnat_url="https://qib.shef.ac.uk",
                 output_dir=dir_output,
                 log=True,
                 n_max=n_max,
                 **props
             )
-            logging.info(f"Finished downloading {group}.")
-        except:
-            logging.exception(f"Error downloading {group}.")
 
+            group_stats[group] = {
+                "fetched": n_downloaded + n_existed,  # all matching series found
+                "skipped": n_existed,                 # already exist on disk, not corrupted
+                "attempted": n_downloaded,            # downloads actually tried
+                "failed": failed_downloads,           # list of (filepath, error)
+            }
+            
+            logging.info(f"Finished downloading {group}.") 
+            
+        except Exception:
+            logging.exception(f"Error downloading {group}.")
+            failed_groups.append(group) # add group to the list of failed groups
+
+    _log_total_summary(group_stats, failed_groups, len(DOWNLOAD))
+
+
+def _log_total_summary(group_stats, failed_groups, n_groups):
+    "Log summary of the whole run, per group and in total"
+    logging.info(f" \n ---------- DOWNLOAD SUMMARY ----------")
+    logging.info(f"Total groups downloaded: {len(group_stats)} out of {n_groups}")
+    if failed_groups:
+        logging.info(f"Groups that had error during download: {', '.join(failed_groups)}")
+
+    for group, s in group_stats.items():
+        logging.info(
+            f"\n Group: {group}"
+            f"\n Files fetched (matched the series description): {s['fetched']}"
+            f"\n Files skipped (already existed, not corrupted): {s['skipped']}"
+            f"\n Files attempted to download: {s['attempted']}"
+            f"\n Files failed due to error: {len(s['failed'])}"
+        )
+        for filepath, error in s["failed"]:
+            logging.info(f"ERROR {error} : {filepath}")
 
 
 if __name__ == '__main__':
 
-    build = r"C:\Users\eia21frd\Documents\iBEAt_Build"
+    build = r"C:\Users\admin\Desktop\Deep-learning-motion-correction-MRI\ibeat-dce-supporting data\Data"
     pipe.run_stage(run, build, PIPELINE, __file__)
