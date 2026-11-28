@@ -1,3 +1,7 @@
+"""
+Code used for going through the data for all patients in XNAT and extracting information about them in csv files.
+Extracted files are then used for Exploratory Data Analysis (EDA)
+"""
 import os
 import logging
 from tqdm import tqdm
