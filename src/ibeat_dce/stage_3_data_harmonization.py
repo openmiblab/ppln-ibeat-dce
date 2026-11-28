@@ -59,6 +59,10 @@ def sheffield(download_path, output_dir):
     with tempfile.TemporaryDirectory() as temp_folder:
         for patient_folder in os.listdir(sitedownloadpath):
             # patient_folder is e.g. IBE7128019; the experiment folder below it is ignored
+            if patient_folder in EXCLUDE:
+                logging.info(f"Patient {patient_folder} - skipped (in EXCLUDE list)")
+                continue
+            
             patient_path = Path(sitedownloadpath) / patient_folder
             zips = [p for p in patient_path.rglob("*") if p.suffix.lower() == ".zip"]
 
